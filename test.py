@@ -1,6 +1,8 @@
-import gmlparser
-import jsonpickle
 import json
+
+import jsonpickle
+
+import gmlparser
 
 
 def print_json(o):
@@ -9,4 +11,5 @@ def print_json(o):
 
 
 ast = gmlparser.parse_file('test.gml')
-print_json(ast)
+if ast is not None:
+    print_json(ast)

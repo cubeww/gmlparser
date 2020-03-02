@@ -1,6 +1,6 @@
+from gmllexer import Lexer
 from gmltoken import Token
 from gmlvalue import Value
-from gmllexer import Lexer
 
 
 def parse_file(filename):
@@ -12,27 +12,54 @@ def parse_file(filename):
 
 def parse_text(text):
     # 对文本进行解析
+    # Lexer 工作
+    try:
+        # 将源文本转化为一个一个的Token，便于后续处理
+        lexer = Lexer()
+        token_list = lexer.to_token_list(text=text)
+    except Exception as err:
+        # 输出Lexer错误
+        print('Lexer error:')
+        print('  %s' % err)
+        return
+    # Parser 工作
+    try:
+        # 将转化好的Token列表进行初步解析，生成函数、变量名称、变量数值
+        parser = Parser()
+        parsed_list = parser.to_parsed_list(token_list=token_list)
 
-    # 第一步：源文本转换为Token列表
-    # 将源文本转化为一个一个的Token，便于后续处理
-    lexer = Lexer()
-    token_list = lexer.to_token_list(text=text)
-
-    # 第二步：对Token列表进行初步解析
-    # 将转化好的Token列表进行初步解析，生成函数、变量名称、变量数值
-    parser = Parser()
-    parsed_list = parser.to_parsed_list(token_list=token_list)
-
-    # 第三步：将初步解析后的列表转换为语法树
-    # 对初步解析后的列表进一步解析，生成语句、分支判断、代码块等
-    return parser.to_ast_list(parsed_list=parsed_list)
-
+        # 对初步解析后的列表进一步解析，生成语句、分支判断、代码块等
+        return parser.to_ast_list(parsed_list=parsed_list)
+    except Exception as err:
+        # 输出Parser错误
+        print('Parser error:')
+        line = 0
+        line_start = 0
+        index = parsed_list[parser.index].index
+        for pos, char in enumerate(text):
+            if pos >= index:
+                break
+            if char == '\n':
+                line += 1
+                line_start = pos + 1
+        print('  line %s' % (line + 1))
+        print('    ' + text.splitlines()[line])
+        print('    ' + (index - line_start) * ' ' + '^')
+        print('SyntaxError: %s' % err)
+        return
 
 class Parser:
     def __init__(self):
+        # Token列表（未解析）
         self.token_list = None
+
+        # 初步解析后的Token列表
         self.parsed_list = None
+
+        # 语法树列表（完全解析后的Token列表）
         self.ast_list = None
+
+        # 当前索引位置
         self.index = 0
 
     def to_parsed_list(self, token_list):
@@ -42,6 +69,7 @@ class Parser:
         self.index = 0
 
         for self.index in range(len(self.token_list)):
+            # 遍历Token列表，重新创建函数、名称、数值、字符串Token
             if self.token_list[self.index].token == 'Name' and self.token_list[self.index + 1].token == 'Open':
                 self.create_functions_token()
             elif self.token_list[self.index].token == 'Name':
@@ -70,7 +98,7 @@ class Parser:
         text = token.text
         value = None
         if text[0] == '$':
-            num = int(text[1:16])
+            num = int(text[1:], 16)
             value = Value(num)
         else:
             result = 0.0
@@ -97,10 +125,13 @@ class Parser:
         self.ast_list = []
         self.parsed_list = parsed_list
         while self.parsed_list[self.index].token != 'EOF':
+            # 遍历初步解析的列表，逐个解析statement
             self.parse_statement(self.ast_list)
         return self.ast_list
 
     def parse_statement(self, parent):
+        # 解析一个statement
+        # statement：一条基本语句
         token = self.parsed_list[self.index].token
         if token == 'EOF':
             raise Exception('unexpected EOF encountered')
@@ -135,9 +166,7 @@ class Parser:
         elif token == 'SepStatement':
             pass
         elif token in ('Exit', 'Break', 'Continue'):
-            self.ast_list.append(
-                Token(token=self.parsed_list[self.index].token, index=self.parsed_list[self.index].index,
-                      text=self.parsed_list[self.index].text, value=self.parsed_list[self.index].value))
+            self.ast_list.append(self.clone_current_parsed_token())
             self.index += 1
         else:
             self.parse_assignment(parent)
@@ -146,11 +175,11 @@ class Parser:
             self.index += 1
 
     def parse_var(self, parent):
+        # 解析一个var关键字后的所有名称
         token = Token(token='Var', index=self.parsed_list[self.index].index, text=self.parsed_list[self.index].text)
         self.index += 1
         while self.parsed_list[self.index].token == 'Variable':
-            token2 = Token(token='Constant', index=self.parsed_list[self.index].index,
-                           text=self.parsed_list[self.index].text, value=self.parsed_list[self.index].value)
+            token2 = self.clone_current_parsed_token('Constant')
             token.children.append(token2)
             self.index += 1
             if self.parsed_list[self.index].token == 'SepArgument':
@@ -158,12 +187,12 @@ class Parser:
         parent.append(token)
 
     def parse_globalvar(self, parent):
+        # 解析一个globalvar关键字后的所有名称
         token = Token(token='GlobalVar', index=self.parsed_list[self.index].index,
                       text=self.parsed_list[self.index].text)
         self.index += 1
         while self.parsed_list[self.index].token == 'Variable':
-            token2 = Token(token='Constant', index=self.parsed_list[self.index].index,
-                           text=self.parsed_list[self.index].text, value=self.parsed_list[self.index].value)
+            token2 = self.clone_current_parsed_token('Constant')
             token.children.append(token2)
             self.index += 1
             if self.parsed_list[self.index].token == 'SepArgument':
@@ -171,8 +200,8 @@ class Parser:
         parent.append(token)
 
     def parse_block(self, parent):
-        token = Token(token=self.parsed_list[self.index].token, index=self.parsed_list[self.index].index,
-                      text=self.parsed_list[self.index].text, value=self.parsed_list[self.index].value)
+        # 解析一个代码块{}
+        token = self.clone_current_parsed_token()
         parent.append(token)
         self.index += 1
         while self.parsed_list[self.index].token != 'EOF' and self.parsed_list[self.index].token != 'End':
@@ -183,15 +212,15 @@ class Parser:
             self.index += 1
 
     def parse_repeat(self, parent):
+        # 解析一个repeat段落
         self.index += 1
-        token = Token(token=self.parsed_list[self.index].token, index=self.parsed_list[self.index].index,
-                      text=self.parsed_list[self.index].text, value=self.parsed_list[self.index].value)
+        token = self.clone_current_parsed_token()
         parent.append(token)
         self.parse_expression1(token.children)
 
     def parse_expression1(self, parent):
-        token = Token(token='Binary', index=self.parsed_list[self.index].index,
-                      text=self.parsed_list[self.index].text, value=self.parsed_list[self.index].value)
+        # 解析一个布尔表达式
+        token = self.clone_current_parsed_token('Binary')
         self.parse_expression2(token.children)
         flag = True
         while self.parsed_list[self.index].token in ('And', 'Or', 'Xor'):
@@ -205,8 +234,7 @@ class Parser:
             parent.append(token)
 
     def parse_expression2(self, parent):
-        token = Token(token='Binary', index=self.parsed_list[self.index].index,
-                      text=self.parsed_list[self.index].text, value=self.parsed_list[self.index].value)
+        token = self.clone_current_parsed_token('Binary')
         self.parse_expression3(token.children)
         flag = True
         while self.parsed_list[self.index].token in (
@@ -221,8 +249,7 @@ class Parser:
             parent.append(token)
 
     def parse_expression3(self, parent):
-        token = Token(token='Binary', index=self.parsed_list[self.index].index,
-                      text=self.parsed_list[self.index].text, value=self.parsed_list[self.index].value)
+        token = self.clone_current_parsed_token('Binary')
         self.parse_expression4(token.children)
         flag = True
         while self.parsed_list[self.index].token in ('BitOr', 'BitAnd', 'BitXor'):
@@ -236,8 +263,7 @@ class Parser:
             parent.append(token)
 
     def parse_expression4(self, parent):
-        token = Token(token='Binary', index=self.parsed_list[self.index].index,
-                      text=self.parsed_list[self.index].text, value=self.parsed_list[self.index].value)
+        token = self.clone_current_parsed_token('Binary')
         self.parse_expression5(token.children)
         flag = True
         while self.parsed_list[self.index].token in ('BitShiftLeft', 'BitShiftRight', 'BitShiftRight'):
@@ -251,8 +277,7 @@ class Parser:
             parent.append(token)
 
     def parse_expression5(self, parent):
-        token = Token(token='Binary', index=self.parsed_list[self.index].index,
-                      text=self.parsed_list[self.index].text, value=self.parsed_list[self.index].value)
+        token = self.clone_current_parsed_token('Binary')
         self.parse_expression6(token.children)
         flag = True
         while self.parsed_list[self.index].token in ('Plus', 'Minus'):
@@ -266,8 +291,7 @@ class Parser:
             parent.append(token)
 
     def parse_expression6(self, parent):
-        token = Token(token='Binary', index=self.parsed_list[self.index].index,
-                      text=self.parsed_list[self.index].text, value=self.parsed_list[self.index].value)
+        token = self.clone_current_parsed_token('Binary')
         self.parse_variable2(token.children)
         flag = True
         while self.parsed_list[self.index].token in ('Time', 'Divide', 'Div', 'Mod'):
@@ -280,27 +304,13 @@ class Parser:
         else:
             parent.append(token)
 
-    def parse_variable2(self, parent):
-        lst = []
-        self.parse_term(lst)
-        if self.parsed_list[self.index].token == 'Dot':
-            token = Token(token='Dot', index=self.parsed_list[self.index].index,
-                          text=self.parsed_list[self.index].text, value=self.parsed_list[self.index].value)
-            token.children.extend(lst)
-            parent.append(token)
-            while self.parsed_list[self.index].token == 'Dot':
-                self.index += 1
-                self.parse_variable(token.children)
-        else:
-            parent.extend(lst)
-
     def parse_term(self, parent):
+        # 解析一个词汇
         tok = self.parsed_list[self.index].token
         if tok == 'Function':
             self.parse_function(parent)
         elif tok == 'Constant':
-            parent.append(Token(token=self.parsed_list[self.index].token, index=self.parsed_list[self.index].index,
-                                text=self.parsed_list[self.index].text, value=self.parsed_list[self.index].value))
+            parent.append(self.clone_current_parsed_token())
             self.index += 1
         elif tok == 'Open':
             self.index += 1
@@ -311,8 +321,7 @@ class Parser:
         elif tok == 'Variable':
             self.parse_variable(parent)
         elif tok in ('Not', 'Plus', 'Minus', 'BitNegate'):
-            token = Token(token='Unary', text=self.parsed_list[self.index].text,
-                          index=self.parsed_list[self.index].index, value=self.parsed_list[self.index].value)
+            token = self.clone_current_parsed_token('Unary')
             self.index += 1
             self.parse_variable2(token.children)
             parent.append(token)
@@ -320,10 +329,10 @@ class Parser:
             raise Exception('unexpected symbol in expression')
 
     def parse_variable(self, parent):
+        # 解析一个变量，不带有“.”
         if self.parsed_list[self.index].token != 'Variable':
             raise Exception('variable name expected')
-        token = Token(token=self.parsed_list[self.index].token, text=self.parsed_list[self.index].text,
-                      index=self.parsed_list[self.index].index, value=self.parsed_list[self.index].value)
+        token = self.clone_current_parsed_token()
         parent.append(token)
         self.index += 1
         if self.parsed_list[self.index].token == 'ArrayOpen':
@@ -340,9 +349,23 @@ class Parser:
             if len(token.children) >= 3:
                 raise Exception('only 1 or 2 dimensional arrays are supported')
 
+    def parse_variable2(self, parent):
+        # 解析一个变量名称，可带有“.”
+        lst = []
+        self.parse_term(lst)
+        if self.parsed_list[self.index].token == 'Dot':
+            token = self.clone_current_parsed_token('Dot')
+            token.children.extend(lst)
+            parent.append(token)
+            while self.parsed_list[self.index].token == 'Dot':
+                self.index += 1
+                self.parse_variable(token.children)
+        else:
+            parent.extend(lst)
+
     def parse_if(self, parent):
-        token = Token(token=self.parsed_list[self.index].token, text=self.parsed_list[self.index].text,
-                      index=self.parsed_list[self.index].index, value=self.parsed_list[self.index].value)
+        # 解析一个if段落
+        token = self.clone_current_parsed_token()
         parent.append(token)
         self.index += 1
         self.parse_expression1(token.children)
@@ -354,8 +377,8 @@ class Parser:
             self.parse_statement(token.children)
 
     def parse_while(self, parent):
-        token = Token(token=self.parsed_list[self.index].token, text=self.parsed_list[self.index].text,
-                      index=self.parsed_list[self.index].index, value=self.parsed_list[self.index].value)
+        # 解析一个while段落
+        token = self.clone_current_parsed_token()
         parent.append(token)
         self.index += 1
         self.parse_expression1(token.children)
@@ -364,8 +387,8 @@ class Parser:
         self.parse_statement(token.children)
 
     def parse_for(self, parent):
-        token = Token(token=self.parsed_list[self.index].token, text=self.parsed_list[self.index].text,
-                      index=self.parsed_list[self.index].index, value=self.parsed_list[self.index].value)
+        # 解析一个for段落
+        token = self.clone_current_parsed_token()
         parent.append(token)
         self.index += 1
         if self.parsed_list[self.index].token != 'Open':
@@ -388,8 +411,8 @@ class Parser:
         self.parse_statement(token.children)
 
     def parse_do(self, parent):
-        token = Token(token=self.parsed_list[self.index].token, text=self.parsed_list[self.index].text,
-                      index=self.parsed_list[self.index].index, value=self.parsed_list[self.index].value)
+        # 解析一个do-until段落
+        token = self.clone_current_parsed_token()
         parent.append(token)
         self.index += 1
         self.parse_statement(token.children)
@@ -399,8 +422,8 @@ class Parser:
         self.parse_expression1(token.children)
 
     def parse_with(self, parent):
-        token = Token(token=self.parsed_list[self.index].token, text=self.parsed_list[self.index].text,
-                      index=self.parsed_list[self.index].index, value=self.parsed_list[self.index].value)
+        # 解析一个with段落
+        token = self.clone_current_parsed_token()
         parent.append(token)
         self.index += 1
         self.parse_expression1(token.children)
@@ -409,8 +432,8 @@ class Parser:
         self.parse_statement(token.children)
 
     def parse_switch(self, parent):
-        token = Token(token=self.parsed_list[self.index].token, text=self.parsed_list[self.index].text,
-                      index=self.parsed_list[self.index].index, value=self.parsed_list[self.index].value)
+        # 解析一个switch段落
+        token = self.clone_current_parsed_token()
         parent.append(token)
         self.index += 1
         self.parse_expression1(token.children)
@@ -424,8 +447,8 @@ class Parser:
         self.index += 1
 
     def parse_case(self, parent):
-        token = Token(token=self.parsed_list[self.index].token, text=self.parsed_list[self.index].text,
-                      index=self.parsed_list[self.index].index, value=self.parsed_list[self.index].value)
+        # 解析一个case分支
+        token = self.clone_current_parsed_token()
         self.index += 1
         self.parse_expression1(token.children)
         if self.parsed_list[self.index].token != 'Label':
@@ -434,26 +457,26 @@ class Parser:
         self.index += 1
 
     def parse_default(self, parent):
+        # 解析一个default分支
         self.index += 1
-        item = Token(token=self.parsed_list[self.index].token, text=self.parsed_list[self.index].text,
-                     index=self.parsed_list[self.index].index, value=self.parsed_list[self.index].value)
+        item = self.clone_current_parsed_token()
         if self.parsed_list[self.index].token != 'Label':
             raise Exception('Symbol : expected')
         parent.append(item)
         self.index += 1
 
     def parse_return(self, parent):
-        token = Token(token=self.parsed_list[self.index].token, text=self.parsed_list[self.index].text,
-                      index=self.parsed_list[self.index].index, value=self.parsed_list[self.index].value)
+        # 解析一个return语句
+        token = self.clone_current_parsed_token()
         self.index += 1
         self.parse_expression1(token.children)
         parent.append(token)
 
     def parse_function(self, parent):
+        # 解析一个函数
         if self.parsed_list[self.index].token != 'Function':
             raise Exception('Function name expected')
-        token = Token(token=self.parsed_list[self.index].token, text=self.parsed_list[self.index].text,
-                      index=self.parsed_list[self.index].index, value=self.parsed_list[self.index].value)
+        token = self.clone_current_parsed_token()
         parent.append(token)
         self.index += 1
         if self.parsed_list[self.index].token != 'Open':
@@ -471,19 +494,22 @@ class Parser:
             self.index += 1
 
     def parse_assignment(self, parent):
-        token = Token(token='Assign', text=self.parsed_list[self.index].text,
-                      index=self.parsed_list[self.index].index, value=self.parsed_list[self.index].value)
+        # 解析一个赋值语句
+        token = self.clone_current_parsed_token("Assign")
         parent.append(token)
 
         self.parse_variable2(token.children)
         tok = self.parsed_list[self.index].token
         if tok in ('Assign', 'AssignPlus', 'AssignMinus', 'AssignTimes',
                    'AssignDivide', 'AssignOr', 'AssignAnd', 'AssignXor'):
-            token.children.append(
-                Token(token=self.parsed_list[self.index].token, text=self.parsed_list[self.index].text,
-                      index=self.parsed_list[self.index].index,
-                      value=self.parsed_list[self.index].value))
+            token.children.append(self.clone_current_parsed_token())
             self.index += 1
             self.parse_expression1(token.children)
         else:
             raise Exception('Assignment operator expected')
+
+    def clone_current_parsed_token(self, new_token=None):
+        # 拷贝一份当前初步解析的Token
+        return Token(token=self.parsed_list[self.index].token if new_token is None else new_token,
+                     text=self.parsed_list[self.index].text,
+                     index=self.parsed_list[self.index].index, value=self.parsed_list[self.index].value)

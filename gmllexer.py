@@ -357,7 +357,7 @@ class Lexer:
         text += self.text[self.index]
         self.index += 1
         while self.index < len(self.text) and (self.text[self.index].isdigit() or (
-                self.text[self.index].lower() >= ord('a') and self.text[self.index] <= ord('f'))):
+                ord(self.text[self.index].lower()) >= ord('a') and ord(self.text[self.index]) <= ord('f'))):
             # 如果当前字符是a~f，就加入text
             text += self.text[self.index]
             self.index += 1

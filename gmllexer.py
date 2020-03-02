@@ -1,6 +1,3 @@
-from gmltoken import Token
-
-
 class Lexer:
     def __init__(self):
         # 当前字符位置
@@ -20,7 +17,7 @@ class Lexer:
             token = self.next_token()
             token_list.append(token)
 
-            if token.token == 'EOF':
+            if token['token'] == 'EOF':
                 flag = True
         # 返回解析好的Token列表
         return token_list
@@ -71,7 +68,7 @@ class Lexer:
         self.skip_whitespace()
         # 超出长度检查
         if self.index >= len(self.text):
-            return Token(token='EOF', index=self.index)
+            return {'token': 'EOF', 'index': self.index, 'text':None}
         # 获取当前字符
         c = self.text[self.index]
         # 为字母，读取下一个名称
@@ -93,181 +90,181 @@ class Lexer:
                 return self.next_value()
             # 单个符号检测
             if c == '{':
-                tok = Token(token='Begin', index=self.index, text='{')
+                tok = {'token': 'Begin', 'index': self.index, 'text': '{'}
                 self.index += 1
                 return tok
             elif c == '}':
-                tok = Token(token='End', index=self.index, text='}')
+                tok = {'token': 'End', 'index': self.index, 'text': '{'}
                 self.index += 1
                 return tok
             elif c == '(':
-                tok = Token(token='Open', index=self.index, text='(')
+                tok = {'token': 'Open', 'index': self.index, 'text': '('}
                 self.index += 1
                 return tok
             elif c == ')':
-                tok = Token(token='Close', index=self.index, text=')')
+                tok = {'token': 'Close', 'index': self.index, 'text': ')'}
                 self.index += 1
                 return tok
             elif c == '[':
-                tok = Token(token='ArrayOpen', index=self.index, text='[')
+                tok = {'token': 'ArrayOpen', 'index': self.index, 'text': '['}
                 self.index += 1
                 return tok
             elif c == ']':
-                tok = Token(token='ArrayClose', index=self.index, text=']')
+                tok = {'token': 'ArrayClose', 'index': self.index, 'text': ']'}
                 self.index += 1
                 return tok
             elif c == ';':
-                tok = Token(token='SepStatement', index=self.index, text=';')
+                tok = {'token': 'SepStatement', 'index': self.index, 'text': ';'}
                 self.index += 1
                 return tok
             elif c == ',':
-                tok = Token(token='SepArgument', index=self.index, text=',')
+                tok = {'token': 'SepArgument', 'index': self.index, 'text': ','}
                 self.index += 1
                 return tok
             elif c == '.':
-                tok = Token(token='Dot', index=self.index, text='.')
+                tok = {'token': 'Dot', 'index': self.index, 'text': '.'}
                 self.index += 1
                 return tok
             elif c == '~':
-                tok = Token(token='BitNegate', index=self.index, text='~')
+                tok = {'token': 'BitNegate', 'index': self.index, 'text': '~'}
                 self.index += 1
                 return tok
             # 多重符号检测
             elif c == '!':
                 self.index += 1
                 if self.index >= len(self.text) or self.text[self.index] != '=':
-                    tok = Token(token='Not', index=self.index - 1, text='!')
+                    tok = {'token': 'Not', 'index': self.index - 1, 'text': '!'}
                     return tok
                 else:
-                    tok = Token(token='NotEqual', index=self.index - 2, text='!=')
+                    tok = {'token': 'NotEqual', 'index': self.index - 2, 'text': '!='}
                     self.index += 1
                     return tok
             elif c == '=':
                 self.index += 1
                 if self.index >= len(self.text) or self.text[self.index] != '=':
-                    tok = Token(token='Assign', index=self.index - 1, text='=')
+                    tok = {'token': 'Assign', 'index': self.index - 1, 'text': '='}
                     return tok
                 else:
-                    tok = Token(token='Equal', index=self.index - 2, text='==')
+                    tok = {'token': 'Equal', 'index': self.index - 2, 'text': '=='}
                     self.index += 1
                     return tok
             elif c == ':':
                 self.index += 1
                 if self.index >= len(self.text) or self.text[self.index] != '=':
-                    tok = Token(token='Label', index=self.index - 1, text=':')
+                    tok = {'token': 'Label', 'index': self.index - 1, 'text': ':'}
                     return tok
                 else:
-                    tok = Token(token='Assign', index=self.index - 2, text=':=')
+                    tok = {'token': 'Assign', 'index': self.index - 2, 'text': ':='}
                     self.index += 1
                     return tok
             elif c == '+':
                 self.index += 1
                 if self.index >= len(self.text) or self.text[self.index] != '=':
-                    tok = Token(token='Plus', index=self.index - 1, text='+')
+                    tok = {'token': 'Plus', 'index': self.index - 1, 'text': '+'}
                     return tok
                 else:
-                    tok = Token(token='AssignPlus', index=self.index - 2, text='+=')
+                    tok = {'token': 'AssignPlus', 'index': self.index - 2, 'text': '+='}
                     self.index += 1
                     return tok
             elif c == '-':
                 self.index += 1
                 if self.index >= len(self.text) or self.text[self.index] != '=':
-                    tok = Token(token='Minus', index=self.index - 1, text='-')
+                    tok = {'token': 'Minus', 'index': self.index - 1, 'text': '-'}
                     return tok
                 else:
-                    tok = Token(token='AssignMinus', index=self.index - 2, text='-=')
+                    tok = {'token': 'AssignMinus', 'index': self.index - 2, 'text': '-='}
                     self.index += 1
                     return tok
             elif c == '*':
                 self.index += 1
                 if self.index >= len(self.text) or self.text[self.index] != '=':
-                    tok = Token(token='Time', index=self.index - 1, text='*')
+                    tok = {'token': 'Time', 'index': self.index - 1, 'text': '*'}
                     return tok
                 else:
-                    tok = Token(token='AssignTimes', index=self.index - 2, text='*=')
+                    tok = {'token': 'AssignTimes', 'index': self.index - 2, 'text': '*='}
                     self.index += 1
                     return tok
             elif c == '/':
                 self.index += 1
                 if self.index >= len(self.text) or self.text[self.index] != '=':
-                    tok = Token(token='Divide', index=self.index - 1, text='/')
+                    tok = {'token': 'Divide', 'index': self.index - 1, 'text': '/'}
                     return tok
                 else:
-                    tok = Token(token='AssignDivide', index=self.index - 2, text='/=')
+                    tok = {'token': 'AssignDivide', 'index': self.index - 2, 'text': '/='}
                     self.index += 1
                     return tok
             elif c == '<':
                 if self.index + 1 < len(self.text):
                     if self.text[self.index + 1] == '>':
                         self.index += 2
-                        tok = Token(token='NotEqual', index=self.index, text='<>')
+                        tok = {'token': 'NotEqual', 'index': self.index, 'text': '<>'}
                         return tok
                     elif self.text[self.index + 1] == '<':
                         self.index += 2
-                        tok = Token(token='BitShiftLeft', index=self.index, text='<<')
+                        tok = {'token': 'BitShiftLeft', 'index': self.index, 'text': '<<'}
                         return tok
                     elif self.text[self.index + 1] == '=':
                         self.index += 2
-                        tok = Token(token='LessEqual', index=self.index, text='<=')
+                        tok = {'token': 'LessEqual', 'index': self.index, 'text': '<='}
                         return tok
                     else:
-                        tok = Token(token='Less', index=self.index, text='<')
+                        tok = {'token': 'Less', 'index': self.index, 'text': '<'}
                         self.index += 1
                         return tok
             elif c == '>':
                 if self.index + 1 < len(self.text):
                     if self.text[self.index + 1] == '>':
                         self.index += 2
-                        tok = Token(token='BitShiftRight', index=self.index, text='>>')
+                        tok = {'token': 'BitShiftRight', 'index': self.index, 'text': '>>'}
                         return tok
                     elif self.text[self.index + 1] == '=':
                         self.index += 2
-                        tok = Token(token='GreaterEqual', index=self.index, text='>=')
+                        tok = {'token': 'GreaterEqual', 'index': self.index, 'text': '>='}
                         return tok
                     else:
-                        tok = Token(token='Greater', index=self.index, text='>')
+                        tok = {'token': 'Greater', 'index': self.index, 'text': '>'}
                         self.index += 1
                         return tok
             elif c == '|':
                 if self.index + 1 < len(self.text):
                     if self.text[self.index + 1] == '|':
                         self.index += 2
-                        tok = Token(token='Or', index=self.index, text='||')
+                        tok = {'token': 'Or', 'index': self.index, 'text': '||'}
                         return tok
                     elif self.text[self.index + 1] == '=':
                         self.index += 2
-                        tok = Token(token='AssignOr', index=self.index, text='|=')
+                        tok = {'token': 'AssignOr', 'index': self.index, 'text': '|='}
                         return tok
                     else:
-                        tok = Token(token='BitOr', index=self.index, text='|')
+                        tok = {'token': 'BitOr', 'index': self.index, 'text': '|'}
                         self.index += 1
                         return tok
             elif c == '&':
                 if self.index + 1 < len(self.text):
                     if self.text[self.index + 1] == '&':
                         self.index += 2
-                        tok = Token(token='And', index=self.index, text='&&')
+                        tok = {'token': 'And', 'index': self.index, 'text': '&&'}
                         return tok
                     elif self.text[self.index + 1] == '=':
                         self.index += 2
-                        tok = Token(token='AssignAnd', index=self.index, text='&=')
+                        tok = {'token': 'AssignAnd', 'index': self.index, 'text': '&='}
                         return tok
                     else:
-                        tok = Token(token='BitAnd', index=self.index, text='&')
+                        tok = {'token': 'BitAnd', 'index': self.index, 'text': '&'}
                         self.index += 1
                         return tok
             elif c == '^':
                 if self.index + 1 < len(self.text):
                     if self.text[self.index + 1] == '^':
                         self.index += 2
-                        tok = Token(token='Xor', index=self.index, text='^^')
+                        tok = {'token': 'Xor', 'index': self.index, 'text': '^^'}
                         return tok
                     elif self.text[self.index + 1] == '=':
                         self.index += 2
-                        tok = Token(token='AssignXor', index=self.index, text='^=')
+                        tok = {'token': 'AssignXor', 'index': self.index, 'text': '^='}
                         return tok
                     else:
-                        tok = Token(token='BitXor', index=self.index, text='^')
+                        tok = {'token': 'BitXor', 'index': self.index, 'text': '^'}
                         self.index += 1
                         return tok
 
@@ -284,59 +281,59 @@ class Lexer:
             self.index += 1
         # 关键字检测
         if text == 'var':
-            return Token(token='Var', index=index, text=text)
+            return {'token': 'Var', 'index': index, 'text': text}
         elif text == 'if':
-            return Token(token='If', index=index, text=text)
+            return {'token': 'If', 'index': index, 'text': text}
         elif text == 'end':
-            return Token(token='End', index=index, text=text)
+            return {'token': 'End', 'index': index, 'text': text}
         elif text == 'else':
-            return Token(token='Else', index=index, text=text)
+            return {'token': 'Else', 'index': index, 'text': text}
         elif text == 'while':
-            return Token(token='While', index=index, text=text)
+            return {'token': 'While', 'index': index, 'text': text}
         elif text == 'do':
-            return Token(token='Do', index=index, text=text)
+            return {'token': 'Do', 'index': index, 'text': text}
         elif text == 'for':
-            return Token(token='For', index=index, text=text)
+            return {'token': 'For', 'index': index, 'text': text}
         elif text == 'begin':
-            return Token(token='Begin', index=index, text=text)
+            return {'token': 'Begin', 'index': index, 'text': text}
         elif text == 'then':
-            return Token(token='Then', index=index, text=text)
+            return {'token': 'Then', 'index': index, 'text': text}
         elif text == 'with':
-            return Token(token='With', index=index, text=text)
+            return {'token': 'With', 'index': index, 'text': text}
         elif text == 'until':
-            return Token(token='Until', index=index, text=text)
+            return {'token': 'Until', 'index': index, 'text': text}
         elif text == 'repeat':
-            return Token(token='Repeat', index=index, text=text)
+            return {'token': 'Repeat', 'index': index, 'text': text}
         elif text == 'exit':
-            return Token(token='Exit', index=index, text=text)
+            return {'token': 'Exit', 'index': index, 'text': text}
         elif text == 'return':
-            return Token(token='Return', index=index, text=text)
+            return {'token': 'Return', 'index': index, 'text': text}
         elif text == 'break':
-            return Token(token='Break', index=index, text=text)
+            return {'token': 'Break', 'index': index, 'text': text}
         elif text == 'continue':
-            return Token(token='Continue', index=index, text=text)
+            return {'token': 'Continue', 'index': index, 'text': text}
         elif text == 'switch':
-            return Token(token='Switch', index=index, text=text)
+            return {'token': 'Switch', 'index': index, 'text': text}
         elif text == 'case':
-            return Token(token='Case', index=index, text=text)
+            return {'token': 'Case', 'index': index, 'text': text}
         elif text == 'default':
-            return Token(token='Default', index=index, text=text)
+            return {'token': 'Default', 'index': index, 'text': text}
         elif text == 'and':
-            return Token(token='And', index=index, text=text)
+            return {'token': 'And', 'index': index, 'text': text}
         elif text == 'or':
-            return Token(token='Or', index=index, text=text)
+            return {'token': 'Or', 'index': index, 'text': text}
         elif text == 'not':
-            return Token(token='Not', index=index, text=text)
+            return {'token': 'Not', 'index': index, 'text': text}
         elif text == 'div':
-            return Token(token='Div', index=index, text=text)
+            return {'token': 'Div', 'index': index, 'text': text}
         elif text == 'mod':
-            return Token(token='Mod', index=index, text=text)
+            return {'token': 'Mod', 'index': index, 'text': text}
         elif text == 'xor':
-            return Token(token='BitXor', index=index, text=text)
+            return {'token': 'BitXor', 'index': index, 'text': text}
         elif text == 'globalvar':
-            return Token(token='GlobalVar', index=index, text=text)
+            return {'token': 'GlobalVar', 'index': index, 'text': text}
         else:
-            return Token(token='Name', index=index, text=text)
+            return {'token': 'Name', 'index': index, 'text': text}
 
     def next_value(self):
         # 读取下一个数值
@@ -348,7 +345,7 @@ class Lexer:
             # 如果当前字符为数字或小数点，就加入text
             text += self.text[self.index]
             self.index += 1
-        return Token(token='Number', index=index, text=text)
+        return {'token': 'Number', 'index': index, 'text': text}
 
     def next_hex(self):
         # 读取下一个十六进制值
@@ -361,7 +358,7 @@ class Lexer:
             # 如果当前字符是a~f，就加入text
             text += self.text[self.index]
             self.index += 1
-        return Token(token='Number', index=index, text=text)
+        return {'token': 'Number', 'index': index, 'text': text}
 
     def next_string(self):
         # 读取下一个字符串
@@ -370,9 +367,9 @@ class Lexer:
         c = self.text[self.index]
         self.index += 1
         while self.index < len(self.text) and c != self.text[self.index]:
-            # 如果当前字符不是"，就加入text
+            # 如果当前字符不是'，就加入text
             text += self.text[self.index]
             self.index += 1
         if self.index < len(self.text):
             self.index += 1
-        return Token(token='String', index=index, text=text)
+        return {'token': 'String', 'index': index, 'text': text}
